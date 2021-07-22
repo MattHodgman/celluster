@@ -1,0 +1,10 @@
+These are things that I need to test:
+
+- can mulitple input files be accepted?
+- can input files with more than necessary columns be accepted and properly processed?
+- does the script write to the correct output directory?
+
+
+Questions I have:
+
+- do I care about the clustering method? aka should I save its name?
