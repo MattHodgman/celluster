@@ -1,11 +1,37 @@
 import argparse
-import numpy as np
 import pandas as pd
 from itertools import combinations
-from tqdm import tqdm
-from scipy import sparse
 import csv
 from operator import itemgetter
+import numpy as np
+
+
+'''
+Cluster class
+'''
+class Cluster:
+
+    # constructor
+    def __init__(self, assignments, cells):
+        self.assignments = assignments # a tuple where each element is the cluster assignment of a different method 
+        self.cells = cells # a list of cell ID's in this cluster
+        self.consensus_scores = {} # a dictionary where keys are other clusters and values are the consensus score between them
+
+    # compare this cluster to another to calculate a consensus score
+    def addComparison(self, cluster):
+        num_methods = len(self.assignments) # the number of clustering methods/algorithms used
+        consensus_score = 0 # a score of what fraction of all methods agreed on cluster assignments
+
+        # compare all cluster assignments and keep score
+        for i in range(num_methods):
+            if self.assignments[i] == cluster.assignments[i]:
+                consensus_score += 1
+
+        # only add consensus score if it isn't zero
+        if consensus_score != 0:
+            consensus_score = consensus_score / num_methods # calculate consensus score NOTE: does this math work correctly or not because I'm dividing ints?
+            self.consensus_scores[cluster.assignments] = consensus_score # add comparison to consensus score sdict
+            
 
 
 '''
@@ -92,172 +118,14 @@ def getConsensusClusters(cluster_table):
 
 
 '''
-Make a dictionary where the key is a tuple with two cell IDs and the value is number of clustering methods that assign them to the same cluster
+Write cell consensus cluster assignments to csv
 '''
-def makeConsensusDict(cluster_table):
-
-    # there may be a way to write off certain pairs as outliers while we are filling up the 'matrix'
-    # if a pair hasn't had any agreement from other algorithms and we are already through most of the algorithms, we could just write it off as an outlier
-
-    # here's another idea
-    # literally just get the duplicate rows and their indices are the cells that have 100% agreement of clusters?
-
-    cluster_table = cluster_table[cluster_table.duplicated(keep=False)] # drop rows that aren't duplicates
-    # (duplicate rows mean that there are at least 2 cells that have were assigned to the same clusters across all algorithms)
-
-    methods = list(cluster_table.columns) # get the method (column) names
-
-    clusters_all = cluster_table.groupby(methods, as_index=False).groups # dictionary where the key is the cluster assignments of all datasets and the value is a list of all the cells that received those assignments
-
-    return clusters_all
-
-    # ok so there are like 250 'clusters' where 'all' datasets agree these cells belong together
-    # but like each dataset has 30 clusters??? 30 * 30 * 25
-
-    # i could group clusters together if they have a 2/3 match of cluster assignments (how do i adapt that threshold for variable number of datasets? >50%?)
-    # but will this just merge all of them together into one? hahaha lets just try it ig hahah
-
-    # clusters_partial = {} # key is ???? value is all cells in that partially supported cluster
-
-    # what if we sorted the clusters by size, then going from biggest to smallest, compared it against all the others and combined those that were majority match?
-    # clusters_all_sorted = sorted(clusters_all, key=lambda k: len(clusters_all[k]), reverse=True)
-
-    # this may be time consuming but I dont think there should be THAT many clusters
-    # for cluster1 in clusters_all_sorted:
-    #     for cluster2 in clusters_all_sorted:
-    #         if cluster1 != cluster2:
-    #             if len(set(cluster1).intersection(set(cluster2))) > 0.5 * float(len(methods)): # if the number of matched cluster assignments is > 50%, merge them
-                     
-
-    # get all comparisons
-    # comparisons = list(combinations(clusters_all.keys(),2)) # is pairwise comparisosn best here?
-
-    # for c in comparisons:
-    #     if len(set(c[0]).intersection(set(c[1]))) > 0.5 * len(c):
-
-
-
-    
-
-
-    # get methods
-    # methods = list(cluster_table.columns)
-
-    # consensus_dict = {}
-
-    # for m in methods:
-
-    #     # get dict of cells in each cluster
-    #     clusters = cluster_table.groupby(m).groups
-
-    #     # initial make dict of same-cluster comparisons    
-    #     if len(consensus_dict.keys() == 0):
-    #         for cluster,cells in clusters.items():
-    #             consensus_dict.update(dict.fromkeys(list(combinations(cells, 2))),1)
-    #     else:
-    #         for cluster,cells in clusters.items():
-    #             combos = list(combinations(cells, 2))
-    #             for c in combos:
-    #                 if c in consensus_dict.keys():
-    #                     consensus_dict[c] += 1
-    #                 else:
-    #                     consensus_dict[c] = 1 # we could just not do this lolol that way we only keep track of the pairs that have agreement between all the clusters
-
-    # return consensus_dict
-
-
-'''
-Make a conensus matrix from the cluster matrix. Not very efficient and takes up a lot of space.
-'''
-def makeConsensusMatrix(cluster_table):
-    # Make the square matrix for N x N
-    consensus_matrix = np.zeros(shape=(len(cluster_table), len(cluster_table)))
-    consensus_matrix[:] = np.NaN  # Replace with NaN to keep the diagonal NaN 
-    iteration_table = cluster_table.to_numpy()
-
-    # Find all i,j combinations of patients that need a consensus index value
-    comb = list(combinations(list(range(0, iteration_table.shape[0])), 2))
-
-    for c in tqdm(comb):
-        both_clustered = 0
-        same_cluster = 0
-
-        for i, j in zip(iteration_table[c[0]], iteration_table[c[1]]):
-            if i >= 0 and j >= 0:
-                both_clustered += 1
-
-                if i == j:
-                    same_cluster += 1
-
-        res = same_cluster/both_clustered if both_clustered != 0 else 0
-
-        consensus_matrix[c[0]][c[1]] = res
-        consensus_matrix[c[1]][c[0]] = res
-
-    return consensus_matrix
-
-
-'''
-Assigns each cell a cluster based on the consensus matrix/dict
-'''
-def assignClusters(consensus_dict):
-
-    # for every pair
-    # oof this is gonna be inefficient haha
-
-
-    # for each row (cell):
-    #   get all column headers (cells) that have a 1
-    #   all those cells are in a cluster with this cell
-
-    pass
-
-
-'''
-Create a matrix that shows if cells are in the same cluster.
-Rows and columns are cell ID and the values are '1' if they are in the same cluster or '0' if they are not.
-
-NOTE: should I use a pandas df or a scipy sparse matrix? numpy array? dictionaries?
-'''
-def makeMatrix(file):
-
-    # get indices of CELLID and CLUSTER columns
-    # cols = getHeader(file)
-    # i_cell = cols.index(CELLID) # index of cell ID column
-    # i_cluster = cols.index(CLUSTER) # indec of cluster assignment column
-
-    # # read input
-    # input = np.loadtxt(file, delimiter=',', skiprows=1, usecols=(i_cell,i_cluster))
-
-    # read cell cluster assignments into dict
-    # cells = {}
-    # with open(file, mode='r') as f:
-    #     reader = csv.reader(f)
-    #     cells = {rows[i_cell]:rows[i_cluster] for rows in reader}
-    
-    # pairwise comparison...
-    # for cell1,cluster1 in cells.items():
-    #     for cell2,cluster2 in cells.items():
-    #         if 
-
-    '''
-    hang on a faster way to do this might be to load it into a df, then group by cluster, then get the cell IDs for each group 
-    and then we can already know the coordinates in our soon-to-be sparse matrix that will have a value of 1
-    '''
-
-    # load in data
-    data = pd.read_csv(file, delimiter=',', index_col=CELLID)
-
-    return data
-
-    # # get dict of cells in each cluster
-    # clusters = input.groupby(CLUSTER).groups
-
-    # # make dict of same-cluster comparisons    
-    # pairs = {}
-    # for cluster,cells in clusters.items():
-    #     pairs.update(dict.fromkeys((list(combinations(cells, 2))),1))
-
+def writeCSV(ccc_assignments):
+    with open('cell_consensus_cluster_assignments.csv','w') as f:
+        csv_out = csv.writer(f)
+        csv_out.writerow([CELLID,CLUSTER])
+        for row in ccc_assignments:
+            csv_out.writerow(row)
 
 '''
 Main.
@@ -291,19 +159,35 @@ if __name__ == '__main__':
 
 
     consensus_clusters = getConsensusClusters(cluster_table)
-    ccc_assignments = formatConsensusClusters(consensus_clusters)
+
+    # make cluster objects
+    clusters = []
+    for cluster,cells in consensus_clusters.items():
+        clusters.append(Cluster(cluster, cells))
+
+    # compare all clusters against each other
+    all_comparisons = list(combinations(clusters, 2))
+    for comparison in all_comparisons:
+        comparison[0].addComparison(comparison[1])
+        comparison[1].addComparison(comparison[0])
+
+
+    # for cluster in clusters:
+    #     print(f'{cluster.assignments}\tNum Cells: {len(cluster.cells)}\t Num Comparisons: {len(cluster.consensus_scores.keys())}')
+
+    # print(f'Num Clusters: {len(clusters)}')
+
+    import matplotlib.pyplot as plt
+    num_cells = [len(c.cells) for c in clusters]
+    num_comps = [len(c.consensus_scores) for c in clusters]
+    plt.scatter(num_cells,num_comps)
+    plt.show()
+
+    # print(f'{clusters[2].assignments}')
+    # for c, score in clusters[2].consensus_scores.items():
+    #     print(f'{c}:\t{score}')
+
+    # ccc_assignments = formatConsensusClusters(consensus_clusters)
 
     # write to csv
-    with open('cell_consensus_cluster_assignments.csv','w') as f:
-        csv_out = csv.writer(f)
-        csv_out.writerow([CELLID,CLUSTER])
-        for row in ccc_assignments:
-            csv_out.writerow(row)
-
-    # table.to_csv('test_cluster.csv', sep=',')
-
-    # make consensus matrix
-    # consensus_matrix = sparse.csr_matrix(makeConsensusMatrix(cluster_table))
-    # np.savetxt('test_consensus_matrix.csv', consensus_matrix, delimiter=',')
-
-    # assign cells to clusters
+    # writeCSV(ccc_assignments)
