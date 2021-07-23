@@ -8,3 +8,14 @@ These are things that I need to test:
 Questions I have:
 
 - do I care about the clustering method? aka should I save its name?
+
+
+
+Notes from meeting with Artem
+
+spend at least of half oteh presentation setting the stage. pick either mcmicro or sms to present.
+
+assess how well clustering worked by looking at 
+- a heatmap or clustergram. this is used only on max several hundred features/cells
+- t- SNE. its difficult to know how valid resutls are because perplexity parameter changes things so much
+- UMAP is best. load in log transformed expression data and then color with the cluster assignments from the different methods and see if they match the UMAP clusters well
