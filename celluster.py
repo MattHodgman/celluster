@@ -177,15 +177,18 @@ if __name__ == '__main__':
 
     # print(f'Num Clusters: {len(clusters)}')
 
-    import matplotlib.pyplot as plt
-    num_cells = [len(c.cells) for c in clusters]
-    num_comps = [len(c.consensus_scores) for c in clusters]
-    plt.scatter(num_cells,num_comps)
-    plt.show()
+
+    # import matplotlib.pyplot as plt
+    # num_cells = [len(c.cells) for c in clusters]
+    # num_comps = [len(c.consensus_scores) for c in clusters]
+    # plt.scatter(num_cells,num_comps)
+    # plt.show()
+
 
     # print(f'{clusters[2].assignments}')
     # for c, score in clusters[2].consensus_scores.items():
     #     print(f'{c}:\t{score}')
+
 
     # ccc_assignments = formatConsensusClusters(consensus_clusters)
 
