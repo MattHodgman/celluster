@@ -33,7 +33,6 @@ class Cluster:
             self.consensus_scores[cluster.assignments] = consensus_score # add comparison to consensus score sdict
             
 
-
 '''
 Parse arguments.
 '''
@@ -43,6 +42,7 @@ def parseArgs():
     parser.add_argument('-o', '--output', help='The directory to which output files will be saved.', type=str, required=False)
     args = parser.parse_args()
     return args
+
 
 '''
 Get the header from an input csv file.
@@ -126,6 +126,7 @@ def writeCSV(ccc_assignments):
         csv_out.writerow([CELLID,CLUSTER])
         for row in ccc_assignments:
             csv_out.writerow(row)
+
 
 '''
 Main.
