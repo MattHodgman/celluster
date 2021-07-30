@@ -321,4 +321,4 @@ if __name__ == '__main__':
     if args.verbose:
         print('Done.')
         print(f'{len(cluster_table.index)} ({(len(cluster_table.index) / (len(recluster_ids) + len(cluster_table.index))) * 100:.2f}%) cells clustered into {len(pd.unique(cluster_table[CLUSTER]))} clusters.')
-        print(f'{len(recluster_ids)} ({(len(recluster_ids) / (len(recluster_ids) + len(cluster_table.index))) * 100:.2f}%) outlier cells to be re-clustered in next iteration.')
+        print(f'{len(recluster_ids)} ({(len(recluster_ids) / (len(recluster_ids) + len(cluster_table.index))) * 100:.2f}%) outlier cells to be re-clustered in the next iteration.')
