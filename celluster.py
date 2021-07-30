@@ -11,7 +11,7 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Implementation of the consensus clustering method proposed in https://www.sciencedirect.com/science/article/pii/S131915781930597X.')
     parser.add_argument('-i', '--input', help='Input cell cluster assignment files.', nargs='*', action='store', dest='input', required=True)
     parser.add_argument('-o', '--output', help='The directory to which output files will be saved.', type=str, required=False)
-    parser.add_argument('-c', '--id', help='The name of the column that contains the item ID.', type=str, required=True)
+    parser.add_argument('-c', '--id', help='The name of the column that contains the cell ID.', type=str, required=True)
     parser.add_argument('-d', '--data', help='The orignal file that was used for clustering.', type=str, required=False)
     parser.add_argument('-t', '--tab', help='Flag to indicate that input files are tab delimited.', action='store_true', required=False)
     parser.add_argument('-v', '--verbose', help='Flag to print information about the consensus clustering.', action='store_true', required=False)
@@ -114,9 +114,9 @@ def getNewLabels(min_clusters_table, m_clusters_table):
     for c_label1 in m_clusters:
         indices = {}
         for c_label2 in min_clusters:
-            c_label1_items = set(m_clusters_table[m_clusters_table == c_label1].index)
-            c_label2_items = set(min_clusters_table[min_clusters_table == c_label2].index)
-            i = jaccard_index(c_label1_items, c_label2_items)
+            c_label1_cells = set(m_clusters_table[m_clusters_table == c_label1].index)
+            c_label2_cells = set(min_clusters_table[min_clusters_table == c_label2].index)
+            i = jaccard_index(c_label1_cells, c_label2_cells)
             indices[i] = c_label2
         max_index = max(indices.keys()) # find the largest jaccard index
         label_match =  indices[max_index] # get the label in the min method with that max jaccard index
@@ -142,7 +142,7 @@ def vote(labels):
 
 
 '''
-Consensus cluster by matching clusters between methods and relabeling them appropriately. Items without majority vote for cluster label are outliers.
+Consensus cluster by matching clusters between methods and relabeling them appropriately. cells without majority vote for cluster label are outliers.
 '''
 def consensusCluster(cluster_table):
 
@@ -156,15 +156,15 @@ def consensusCluster(cluster_table):
         cluster_table[m] = cluster_table[m].map(label_key).fillna(cluster_table[m]) # relabel clusters FASTER
 
     # vote
-    consensus_labels = [vote(row) for row in cluster_table.to_numpy()] # a list of clusters labels (or nan) ordered for each item ID in cluster_table
+    consensus_labels = [vote(row) for row in cluster_table.to_numpy()] # a list of clusters labels (or nan) ordered for each cell ID in cluster_table
     cluster_table[CLUSTER] = consensus_labels # add results to table
 
 
 '''
-If a previous consensus cluster file is provided, update it to contain the latest iteration item cluster labels
+If a previous consensus cluster file is provided, update it to contain the latest iteration cell cluster labels
 '''
 def updateConsensusClusters(file):
-    prev_clusters = pd.read_csv(file, delimiter=delimiter, index_col=id) # get previous consensus cluster labels for items
+    prev_clusters = pd.read_csv(file, delimiter=delimiter, index_col=id) # get previous consensus cluster labels for cells
     max = prev_clusters[CLUSTER].max() # get max cluster label
     min = cluster_table[CLUSTER].min() # get min cluster label from latest iteration
 
@@ -178,12 +178,12 @@ def updateConsensusClusters(file):
     clusters_to_add = cluster_table[CLUSTER].dropna().to_frame()
 
     # update previous cluster labels table
-    # if latest items are in prev_clusters, update cluster label, otherwise append rows
+    # if latest cells are in prev_clusters, update cluster label, otherwise append rows
     contains_all = all(elem in list(prev_clusters.index) for elem in list(cluster_table.index))
     if contains_all:
         prev_clusters.update(clusters_to_add)
     else:
-        constains_any = any(item in list(prev_clusters.index) for item in list(cluster_table.index))
+        constains_any = any(cell in list(prev_clusters.index) for cell in list(cluster_table.index))
         if not constains_any:
             prev_clusters = prev_clusters.append(clusters_to_add).sort_index()
         else:
@@ -196,10 +196,10 @@ def updateConsensusClusters(file):
     
 
 '''
-Get and write the input data of outlier items that need to be re-consensus clustered in the next iteration.
+Get and write the input data of outlier cells that need to be re-consensus clustered in the next iteration.
 '''
 def writeOutlierData(recluster_ids):
-    # get items that need to be reclustered
+    # get cells that need to be reclustered
     if args.data != None and len(recluster_ids) > 0:
         data = pd.read_csv(args.data, delimiter=delimiter, index_col=id)
         recluster_data = data.loc[recluster_ids]
@@ -208,18 +208,18 @@ def writeOutlierData(recluster_ids):
     if args.data != None and len(recluster_ids) > 0:
         recluster_data.to_csv(f'{output}/{data_prefix}-iter-outliers.{extension}', sep=delimiter)
         if args.verbose:
-            print(f'Items to recluster are in the file: {output}/{data_prefix}-iter-outliers.{extension}')
+            print(f'Cells to recluster are in the file: {output}/{data_prefix}-iter-outliers.{extension}')
 
 
 '''
-Format consensus clustered items for output
+Format consensus clustered cells for output
 '''
 def writeConsensusClusters(cluster_table):
-    # write item cluster labels
+    # write cell cluster labels
     if args.outliers:
         cluster_table[CLUSTER] = cluster_table[CLUSTER].map({np.nan : -1}).fillna(cluster_table[CLUSTER]) # set outliers to label '-1'
         if args.verbose:
-            print('Outlier items have the cluster label: -1')
+            print('Outlier cells have the cluster label: -1')
     else:
         cluster_table = cluster_table.dropna()
 
@@ -242,7 +242,7 @@ if __name__ == '__main__':
     # parse arguments
     args = parseArgs()
 
-    id = args.id # the header of the sample/cell/drug/item ID column
+    id = args.id # the header of the sample/cell/drug ID column
 
     # whether to read and write csv or tsv
     if args.tab:
@@ -296,7 +296,7 @@ if __name__ == '__main__':
     if args.verbose:
         print('Retrieving outliers...')
 
-    # get item ID's that need to be re-clustered in the next iteration
+    # get cell ID's that need to be re-clustered in the next iteration
     recluster_ids = cluster_table[cluster_table[CLUSTER].isnull()].index
 
     # update running consensus clusters file
@@ -309,16 +309,16 @@ if __name__ == '__main__':
     if args.verbose:
         print('Writing output files...')
 
-    # write outlier data if the number of items to recluster is > MIN
+    # write outlier data if the number of cells to recluster is > MIN
     if len(recluster_ids) > MIN:
         writeOutlierData(recluster_ids)
     elif args.verbose:
-        print(f'The number of outlier items is <{MIN}, thus no outlier output file was written.')
+        print(f'The number of outlier cells is <{MIN}, thus no outlier output file was written.')
 
     writeConsensusClusters(cluster_table) # write consensus cluster labels for this iteration
 
     # final stats
     if args.verbose:
         print('Done.')
-        print(f'{len(cluster_table.index)} ({(len(cluster_table.index) / (len(recluster_ids) + len(cluster_table.index))) * 100:.2f}%) items clustered into {len(pd.unique(cluster_table[CLUSTER]))} clusters.')
-        print(f'{len(recluster_ids)} ({(len(recluster_ids) / (len(recluster_ids) + len(cluster_table.index))) * 100:.2f}%) outlier items to be re-clustered in next iteration.')
+        print(f'{len(cluster_table.index)} ({(len(cluster_table.index) / (len(recluster_ids) + len(cluster_table.index))) * 100:.2f}%) cells clustered into {len(pd.unique(cluster_table[CLUSTER]))} clusters.')
+        print(f'{len(recluster_ids)} ({(len(recluster_ids) / (len(recluster_ids) + len(cluster_table.index))) * 100:.2f}%) outlier cells to be re-clustered in next iteration.')
