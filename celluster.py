@@ -217,10 +217,9 @@ Format consensus clustered items for output
 def writeConsensusClusters(cluster_table):
     # write item cluster labels
     if args.outliers:
-        cluster_table[CLUSTER] = cluster_table[CLUSTER] + 1 # increment cluster labels
-        cluster_table[CLUSTER] = cluster_table[CLUSTER].map({np.nan : 0}).fillna(cluster_table[CLUSTER]) # set outliers to label '0'
+        cluster_table[CLUSTER] = cluster_table[CLUSTER].map({np.nan : -1}).fillna(cluster_table[CLUSTER]) # set outliers to label '-1'
         if args.verbose:
-            print('Outlier items have the cluster label: 0')
+            print('Outlier items have the cluster label: -1')
     else:
         cluster_table = cluster_table.dropna()
 
@@ -238,6 +237,7 @@ if __name__ == '__main__':
     # constants
     CLUSTER = 'Cluster' # the header of the cluster assignmnet column
     METHOD = 'Method' # the header of the method column
+    MIN = 100 # the minimum number of cells that flowSOM can cluster at default settings
 
     # parse arguments
     args = parseArgs()
@@ -309,8 +309,13 @@ if __name__ == '__main__':
     if args.verbose:
         print('Writing output files...')
 
-    writeOutlierData(recluster_ids) # write outlier data
-    writeConsensusClusters(cluster_table) # write consensus cluster labels
+    # write outlier data if the number of items to recluster is > MIN
+    if len(recluster_ids) > MIN:
+        writeOutlierData(recluster_ids)
+    elif args.verbose:
+        print(f'The number of outlier items is <{MIN}, thus no outlier output file was written.')
+
+    writeConsensusClusters(cluster_table) # write consensus cluster labels for this iteration
 
     # final stats
     if args.verbose:
