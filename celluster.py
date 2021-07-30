@@ -15,7 +15,7 @@ def parseArgs():
     parser.add_argument('-d', '--data', help='The orignal file that was used for clustering.', type=str, required=False)
     parser.add_argument('-t', '--tab', help='Flag to indicate that input files are tab delimited.', action='store_true', required=False)
     parser.add_argument('-v', '--verbose', help='Flag to print information about the consensus clustering.', action='store_true', required=False)
-    parser.add_argument('-z', '--outliers', help='Flag to keep outliers in output file under the cluster label: 0.', action='store_true', required=False)
+    parser.add_argument('-z', '--outliers', help='Flag to keep outliers in output file under the cluster label: -1.', action='store_true', required=False)
     parser.add_argument('-k', '--clusters', help='The file that contains cluster labels from previous iterations.', type=str, required=False)
     parser.add_argument('-n', '--name', help='The name of this dataset for output file naming consistency.', type=str, required=False)
     parser.add_argument('-r', '--iter', help='The iteration number.', type=str, required=False)
