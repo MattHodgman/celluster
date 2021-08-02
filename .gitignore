@@ -131,3 +131,9 @@ dmypy.json
 # rando files
 *.csv
 *.png
+*.txt
+
+# nextflow
+.nextflow/
+.nextflow.*
+work/
