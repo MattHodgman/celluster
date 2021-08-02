@@ -5,15 +5,17 @@ nextflow.enable.dsl=2
 process celluster {
 
     input:
-    // list of cluster files
-    // The orignal file that was used for clustering.
+    path input_files // cluster labels from different methods
+    path data // original data file used for clustering
 
     script:
-    '''
-    python3 celluster.py
-    '''
+    """
+    python3 celluster.py -i $input_files*.csv -c CellID -d $data -v -n test -r 1
+    """
 }
 
 workflow {
-    celluster
+    input_files = channel.fromPath('/cluster_labels/*.csv')
+    data = channel.fromPath('data.csv')
+    celluster(input_files, data)
 }
