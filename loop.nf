@@ -36,10 +36,9 @@ process bar {
     """
 }
 
-
 params.input = "$baseDir/data/hello.txt"
 workflow {
-    condition = { it.readLines().size()>3 }
+    condition = { it.readLines().size()>4 }
     feedback_ch = CH.create()
     input_ch = Channel.fromPath(params.input, checkIfExists:true)
                       .mix( feedback_ch.until(condition) )

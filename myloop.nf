@@ -2,8 +2,18 @@
 
 nextflow.enable.dsl=2
 
+import nextflow.extension.CH
+import static nextflow.extension.DataflowHelper.newOperator
+import groovyx.gpars.dataflow.operator.ChainWithClosure
+import groovyx.gpars.dataflow.operator.CopyChannelsClosure
+
 params.id = 'CellID'
 params.input = ''
+
+def attach(source, target) {
+    newOperator([source.createReadChannel()], [target],
+                new ChainWithClosure(new CopyChannelsClosure()))
+}
 
 process fastpg {
 
@@ -62,22 +72,23 @@ process celluster {
 
     script:
     """
-    python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -v -r ${iter} -n ${dataName}
+    python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -n ${dataName} -r ${iter}
     """
 }
 
-def len(f) {
-    f.subscribe { println it.readLines().size() }
-}
+workflow run_celluster {
 
-workflow {
+  take:
+    input_ch
+    iter
+
+  main:
+
+    iter.view()
+
     // input raw data file
-    data = channel
-                .fromPath(params.input)
+    data = input_ch
                 .map { file -> tuple(file.baseName, file) }
-
-    iter = channel.value(1)
-    iter = iter + 1
 
     // cluster with different methods
     fastpg(data)
@@ -91,5 +102,25 @@ workflow {
 
     // run consensus clustering
     celluster(input_files, data, iter)
-    len(celluster.out.outliers)
+
+    celluster.out.outliers.view()
+
+  emit:
+    celluster.out.outliers
+}
+
+iter = channel.value(0)
+
+workflow {
+    condition = { it.readLines().size()<100 }
+    feedback_ch = CH.create()
+    input_ch = Channel.fromPath(params.input, checkIfExists:true)
+                      .mix( feedback_ch.until(condition) )
+
+    
+    iter = iter + 1
+
+    cell_ch = run_celluster(input_ch, iter)
+
+    attach(cell_ch, feedback_ch)
 }
