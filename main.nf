@@ -3,52 +3,48 @@
 nextflow.enable.dsl=2
 
 params.iter = 1
-params.name = 'test'
 params.id = 'CellID'
-
+params.input = ''
 
 process fastpg {
-    publishDir "./data/fastpg/", mode: 'move'
-
+    
     input:
-    path data
+    tuple val(dataName), file(dataFile)
 
     output:
-    path '*.csv'
+    path '*-cells.csv', emit: cells
 
     script:
     """
-    python3 /app/cluster.py -i $data -c
+    python3 /app/cluster.py -i ${dataFile} -c
     """
 }
 
 process scanpy {
-    publishDir "./data/scanpy/", mode: 'move'
 
     input:
-    path data
+    tuple val(dataName), file(dataFile)
     
     output:
-    path '*.csv'
+    path '*-cells.csv', emit: cells
     
     script: 
     """
-    python3 /app/cluster.py -i $data -c
+    python3 /app/cluster.py -i ${dataFile} -c
     """
 }
 
 process flowsom {
-    publishDir "./data/flowsom/", mode: 'move'
 
     input:
-    path data
+    tuple val(dataName), file(dataFile)
 
     output:
-    path '*.csv'
+    path '*-cells.csv', emit: cells
     
     script:
     """
-    python3 /app/cluster.py -i $data -c
+    python3 /app/cluster.py -i ${dataFile} -c
     """
 }
 
@@ -57,21 +53,23 @@ process celluster {
     publishDir ".", mode: 'move'
 
     input:
-    path input_files // cluster labels from different methods
-    path clean_data // original data file used for clustering
+    file '*.csv' // cluster labels from different methods
+    tuple val(dataName), file(dataFile) // original data file used for clustering and name
 
     output:
     path '*.csv'
 
     script:
     """
-    python3 /app/celluster.py -i $input_files -c $params.id -d $clean_data -v -r $params.iter
+    python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -v -r $params.iter -n ${dataName}
     """
 }
 
 workflow {
     // input raw data file
-    data = channel.fromPath('data/unmicst-exemplar-001.csv')
+    data = channel
+                .fromPath(params.input)
+                .map { file -> tuple(file.baseName, file) }
 
     // cluster with different methods
     fastpg(data)
@@ -79,9 +77,10 @@ workflow {
     flowsom(data)
 
     // get output cell cluster label files
-    input_files = channel.fromPath('data/*/*-cells.csv')
-    clean_data = channel.fromPath('data/*/*-clean.csv').first()
+    input_files = scanpy.out.cells
+                                .mix(fastpg.out.cells, flowsom.out.cells)
+                                .toList()
 
     // run consensus clustering
-    celluster(input_files, clean_data)
+    celluster(input_files, data)
 }
