@@ -200,12 +200,12 @@ Get and write the input data of outlier cells that need to be re-consensus clust
 '''
 def writeOutlierData(recluster_ids):
     # get cells that need to be reclustered
-    if args.data is not None and len(recluster_ids) > MIN:
+    if args.data is not None:
         data = pd.read_csv(args.data, delimiter=delimiter, index_col=id)
         recluster_data = data.loc[recluster_ids]
 
     # write data to recluster
-    if args.data is not None and len(recluster_ids) > MIN:
+    if args.data is not None:
         recluster_data.to_csv(f'{output}/{data_prefix}-iter-outliers.{extension}', sep=delimiter)
         if args.verbose:
             print(f'Cells to recluster are in the file: {output}/{data_prefix}-iter-outliers.{extension}')
@@ -253,8 +253,10 @@ if __name__ == '__main__':
         extension = 'csv'
 
     # get iteration number if provided
-    if args.iter != None:
+    if args.iter is not None:
         iter = '-' + args.iter
+    else:
+        iter = '-X'
 
     # get prefix for output files
     if args.name == None:
@@ -310,10 +312,9 @@ if __name__ == '__main__':
         print('Writing output files...')
 
     # write outlier data if the number of cells to recluster is > MIN
-    if len(recluster_ids) > MIN:
-        writeOutlierData(recluster_ids)
-    elif args.verbose:
-        print(f'The number of outlier cells is <{MIN}, thus no outlier output file was written.')
+    writeOutlierData(recluster_ids)
+    if len(recluster_ids) <= MIN and args.verbose:
+        print(f'The number of outlier cells is <={MIN}, thus the outlier output file is empty.')
 
     writeConsensusClusters(cluster_table, recluster_ids) # write consensus cluster labels for this iteration
 
