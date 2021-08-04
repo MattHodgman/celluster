@@ -302,7 +302,7 @@ if __name__ == '__main__':
     recluster_ids = cluster_table[cluster_table[CLUSTER].isnull()].index
 
     # update running consensus clusters file
-    if args.clusters != None:
+    if args.clusters is not None:
         complete_cluster_table = updateConsensusClusters(args.clusters)
         complete_cluster_table.to_csv(f'{output}/{cluster_prefix}-running-consensus.{extension}', sep=delimiter, columns=[CLUSTER])
         if args.verbose:
