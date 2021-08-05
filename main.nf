@@ -52,7 +52,7 @@ process flowsom {
     
     script:
     """
-    python3 /app/cluster.py -i ${dataFile} -c -n 15
+    python3 /app/cluster.py -i ${dataFile} -c
     """
 }
 
