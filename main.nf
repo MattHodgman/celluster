@@ -4,6 +4,9 @@ nextflow.enable.dsl=2
 
 params.id = 'CellID'
 params.input = ''
+params.iter = 1
+params.clusters = 'NO_FILE'
+params.name = ''
 
 process fastpg {
 
@@ -54,30 +57,31 @@ process celluster {
     input:
     file '*.csv' // cluster labels from different methods
     tuple val(dataName), file(dataFile) // original data file used for clustering and name
-    val iter
+    path consensus
 
     output:
-    path '*-iter-consensus.csv', emit: consensus
-    path '*-iter-outliers.csv', emit: outliers
+    path '*-iter-consensus.csv'
+    path '*-iter-outliers.csv'
+    path '*-running-consensus.csv' optional true
 
     script:
-    """
-    python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -v -r ${iter} -n ${dataName}
-    """
+    if (params.iter == 1) {
+        """
+        python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -r $params.iter -n ${dataName}
+        """
+    } else if (params.iter > 1) {
+        """
+        python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -r $params.iter -n $params.name -k $consensus
+        """
+    }
 }
 
-def len(f) {
-    f.subscribe { println it.readLines().size() }
-}
 
 workflow {
     // input raw data file
     data = channel
                 .fromPath(params.input)
                 .map { file -> tuple(file.baseName, file) }
-
-    iter = channel.value(1)
-    iter = iter + 1
 
     // cluster with different methods
     fastpg(data)
@@ -89,7 +93,14 @@ workflow {
                                 .mix(fastpg.out.cells, flowsom.out.cells)
                                 .toList()
 
+    consensus = channel.fromPath(params.clusters)
+
     // run consensus clustering
-    celluster(input_files, data, iter)
-    len(celluster.out.outliers)
+    celluster(input_files, data, consensus)
+    
+    // celluster.out.outliers.subscribe { 
+    //     if ( it.readLines().size() > 100) {
+    //         println ">100 outliers!"
+    //     }
+    // }
 }
