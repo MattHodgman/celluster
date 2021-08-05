@@ -10,6 +10,8 @@ params.name = ''
 
 process fastpg {
 
+    publishDir 'fastpg'
+
     input:
     tuple val(dataName), file(dataFile)
 
@@ -23,6 +25,8 @@ process fastpg {
 }
 
 process scanpy {
+
+    publishDir 'scanpy'
 
     input:
     tuple val(dataName), file(dataFile)
@@ -38,6 +42,8 @@ process scanpy {
 
 process flowsom {
 
+    publishDir 'flowsom'
+
     input:
     tuple val(dataName), file(dataFile)
 
@@ -46,13 +52,13 @@ process flowsom {
     
     script:
     """
-    python3 /app/cluster.py -i ${dataFile} -c
+    python3 /app/cluster.py -i ${dataFile} -c -n 15
     """
 }
 
 process celluster {
 
-    publishDir ".", mode: 'move'
+    publishDir 'consensus', mode: 'move'
 
     input:
     file '*.csv' // cluster labels from different methods
@@ -67,11 +73,11 @@ process celluster {
     script:
     if (params.iter == 1) {
         """
-        python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -r $params.iter -n ${dataName}
+        python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -r $params.iter -n ${dataName} -z
         """
     } else if (params.iter > 1) {
         """
-        python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -r $params.iter -n $params.name -k $consensus
+        python3 /app/celluster.py -i *.csv -c $params.id -d ${dataFile} -r $params.iter -n $params.name -k $consensus -z
         """
     }
 }
@@ -82,6 +88,12 @@ workflow {
     data = channel
                 .fromPath(params.input)
                 .map { file -> tuple(file.baseName, file) }
+
+    // make method output file dir
+    file('./fastpg').mkdir()
+    file('./scanpy').mkdir()
+    file('./flowsom').mkdir()
+    file('./consensus').mkdir()
 
     // cluster with different methods
     fastpg(data)
