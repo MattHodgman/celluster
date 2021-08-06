@@ -117,8 +117,8 @@ workflow {
     input_ch = Channel.fromPath(params.input, checkIfExists:true)
                       .mix( feedback_ch.until(condition) )
 
-    
-    iter = iter + 1
+    input_ch.view()
+    iter++
 
     cell_ch = run_celluster(input_ch, iter)
 

@@ -36,7 +36,7 @@ process bar {
     """
 }
 
-params.input = "$baseDir/data/hello.txt"
+params.input = "$baseDir/hello.txt"
 workflow {
     condition = { it.readLines().size()>4 }
     feedback_ch = CH.create()
