@@ -1,9 +1,15 @@
 # celluster
 Consensus clustering from multiple methods used in [MCMICRO](https://mcmicro.org/) to cluster cell types. An implementation of the method described in [this paper](https://www.sciencedirect.com/science/article/pii/S131915781930597X). Celluster works by taking the clustering results from different algorithms or algorithms run with different parameters, identifying the algorithm `A` with the fewest clusters and then mapping each of the clusters from the other algorithms to one of the clusters in `A`, creating essentially a many-to-one mapping of cluster labels. Any outlier cells can be put into the cluster with label `-1`. Celluster outputs the consensus clustering results as well as can output the feature table (from the input `feature_table.csv`) that contains only the outlier cells, so as to be used in the next iteration of clustering by the individual algorithms and then celluster.
 
-Example usage:
+Example usage (Python3):
 ```
 python3 celluster.py -i clusters1.csv clusters2.csv clusters3.csv -o . -c 'CellID' -d feature_table.csv -z
+```
+
+Example usage (NextFlow + Docker):
+```
+docker build -t celluster .
+nextflow run main.nf --input unmicst-exemplar-001.csv
 ```
 
 ## input file format
