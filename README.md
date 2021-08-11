@@ -9,7 +9,8 @@ python3 celluster.py -i clusters1.csv clusters2.csv clusters3.csv -o . -c 'CellI
 Example usage (NextFlow + Docker):
 ```
 docker build -t celluster .
-nextflow run main.nf --input unmicst-exemplar-001.csv
+nextflow run main.nf --input data/unmicst-exemplar-001.csv
+nextflow run main.nf --input data/unmicst-exemplar-001-1-iter-outliers.csv --name 'unmicst-exemplar-001' --iter 2  --clusters data/unmicst-exemplar-001-1-iter-consensus.csv
 ```
 
 ## input file format
